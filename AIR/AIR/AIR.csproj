@@ -55,7 +55,9 @@
     <Compile Include="Maths\PID.cs" />
     <Compile Include="Maths\Utility.cs" />
     <Compile Include="Maths\Vector.cs" />
+    <Compile Include="Navigation\AStar.cs" />
     <Compile Include="Navigation\GPSLocationNode.cs" />
+    <Compile Include="Navigation\PathFinder.cs" />
     <Compile Include="Navigation\WayPoint.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sensor\GPS.cs" />

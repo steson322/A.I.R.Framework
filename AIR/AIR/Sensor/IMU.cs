@@ -10,8 +10,6 @@ namespace AIR.Sensor
 {
     public class IMU : Sensor<IMUPackage>
     {
-        public string debug = "";
-
         #region Public Property
         /// <summary>
         /// Accelerometer Sensitivity
@@ -60,7 +58,11 @@ namespace AIR.Sensor
         /// <summary>
         /// Use calibration or not
         /// </summary>
-        public bool UsingCalibration = false;
+        public bool CalibrationMode { get; private set; }
+        /// <summary>
+        /// Calibration profile of IMU
+        /// </summary>
+        public CalibrationProfile Calibration = new CalibrationProfile();
         /// <summary>
         /// Ratio of measurement in place of filtering;
         /// </summary>
@@ -68,34 +70,6 @@ namespace AIR.Sensor
         #endregion Public Property
 
         #region Private Property
-        int CalibrateCount = 0;
-        int CalibrateSample = 512;
-        public double GyroXAvg = 0;
-        public double GyroXMax = Double.MinValue;
-        public double GyroXMin = Double.MaxValue;
-        public double GyroYAvg = 0;
-        public double GyroYMax = Double.MinValue;
-        public double GyroYMin = Double.MaxValue;
-        public double GyroZAvg = 0;
-        public double GyroZMax = Double.MinValue;
-        public double GyroZMin = Double.MaxValue;
-        
-        public double MagXSca = 490;//520.5;
-        public double MagXOff = -78;//170.5;
-        public double MagXMax = Double.MinValue;
-        public double MagXMin = Double.MaxValue;
-        public double MagYSca = 500;//485;
-        public double MagYOff = -132;//-12;
-        public double MagYMax = Double.MinValue;
-        public double MagYMin = Double.MaxValue;
-        public double MagZSca = 460.5;//496;
-        public double MagZOff = -20.5;//129;
-        public double MagZMax = Double.MinValue;
-        public double MagZMin = Double.MaxValue;
-
-        public double MagXCali = 0;
-        public double MagYCali = 0;
-        public double MagZCali = 0;
         #endregion Private Property
 
         /// <summary>
@@ -104,70 +78,80 @@ namespace AIR.Sensor
         public IMU()
         {
             RawData = new IMUPackage();
+            CalibrationMode = false;
+            Pitch = 0;
+            Roll = 0;
             Heading = 0;
         }
+
+        /// <summary>
+        /// Start Calibration Mode
+        /// </summary>
+        public void StartCalibration()
+        {
+            Calibration.CalibrateCount = 0;
+            CalibrationMode = true;
+        }
+
+        /// <summary>
+        /// Finish calibration and use calibration result
+        /// </summary>
+        public void FinishCalibration()
+        {
+            CalibrationMode = false;
+        }
+
+        /// <summary>
+        /// If the sensor has pending data for calibration
+        /// </summary>
+        bool HasCalibraion = false;
+
         /// <summary>
         /// Update a IMU data
         /// </summary>
         /// <param name="package"></param>
         public override void Update(IMUPackage package)
         {
-            //UsingCalibration = true;
             this.RawData = package;
-            if (UsingCalibration)
+            if (CalibrationMode)
             {
-                if (CalibrateCount < CalibrateSample)
-                {
-                    MagXMax = RawData.MagX > MagXMax ? RawData.MagX : MagXMax;
-                    MagXMin = RawData.MagX < MagXMin ? RawData.MagX : MagXMin;
-                    MagYMax = RawData.MagY > MagYMax ? RawData.MagY : MagYMax;
-                    MagYMin = RawData.MagY < MagYMin ? RawData.MagY : MagYMin;
-                    MagZMax = RawData.MagZ > MagZMax ? RawData.MagZ : MagZMax;
-                    MagZMin = RawData.MagZ < MagZMin ? RawData.MagZ : MagZMin;
-                    CalibrateCount++;
-
-                    string debugOut = "MagX = " + MagXMin + " << " + MagXMax;
-                    debugOut += "MagY = " + MagYMin + " << " + MagYMax;
-                    debugOut += "MagZ = " + MagZMin + " << " + MagZMax;
-                    this.debug = debugOut;
-
-                    return;
-                }
-                else if (CalibrateCount == CalibrateSample)
-                {
-                    MagXOff = (MagXMax + MagXMin) / 2.0;
-                    MagXSca = MagXMax - MagXOff;
-                    MagYOff = (MagYMax + MagYMin) / 2.0;
-                    MagYSca = MagYMax - MagYOff;
-                    MagZOff = (MagZMax + MagZMin) / 2.0;
-                    MagZSca = MagZMax - MagZOff;
-                    CalibrateCount++;
-                    Calibrated = true;
-
-                    string debugOut = "MagX Off|Scale = " + MagXOff + " | " + MagXSca;
-                    debugOut += "MagY Off|Scale = " + MagYOff + " << " + MagYSca;
-                    debugOut += "MagZ Off|Scale = " + MagZOff + " << " + MagZSca;
-                    this.debug = debugOut;
-                }
+                HasCalibraion = true;
+                Calibration.MagXMax = RawData.RollAxle.MagneticField > Calibration.MagXMax ? RawData.RollAxle.MagneticField : Calibration.MagXMax;
+                Calibration.MagXMin = RawData.RollAxle.MagneticField < Calibration.MagXMin ? RawData.RollAxle.MagneticField : Calibration.MagXMin;
+                Calibration.MagYMax = RawData.PitchAxle.MagneticField > Calibration.MagYMax ? RawData.PitchAxle.MagneticField : Calibration.MagYMax;
+                Calibration.MagYMin = RawData.PitchAxle.MagneticField < Calibration.MagYMin ? RawData.PitchAxle.MagneticField : Calibration.MagYMin;
+                Calibration.MagZMax = RawData.PitchAxle.MagneticField > Calibration.MagZMax ? RawData.PitchAxle.MagneticField : Calibration.MagZMax;
+                Calibration.MagZMin = RawData.PitchAxle.MagneticField < Calibration.MagZMin ? RawData.PitchAxle.MagneticField : Calibration.MagZMin;
+                Calibration.CalibrateCount++;
+                return;
             }
             else
             {
+                if (HasCalibraion)
+                {
+                    Calibration.MagXOff = (Calibration.MagXMax + Calibration.MagXMin) / 2.0;
+                    Calibration.MagXSca = Calibration.MagXMax - Calibration.MagXOff;
+                    Calibration.MagYOff = (Calibration.MagYMax + Calibration.MagYMin) / 2.0;
+                    Calibration.MagYSca = Calibration.MagYMax - Calibration.MagYOff;
+                    Calibration.MagZOff = (Calibration.MagZMax + Calibration.MagZMin) / 2.0;
+                    Calibration.MagZSca = Calibration.MagZMax - Calibration.MagZOff;
+                    Calibrated = true;
+                }
                 Calibrated = true;
             }
 
             //Sensor Fusion
-
             if (Calibrated)
             {
-                double tempAccelX = RawData.AccelX;
-                double tempAccelY = -RawData.AccelY;
-                double tempAccelZ = RawData.AccelZ;
-                double tempGyroX = RawData.GyroX - GyroXAvg;
-                double tempGyroY = RawData.GyroY - GyroYAvg;
-                double tempGyroZ = -RawData.GyroZ + GyroZAvg;
-                double tempMagX = (RawData.MagY - MagYOff) / MagYSca;
-                double tempMagY = (MagXOff - RawData.MagX) / MagXSca;
-                double tempMagZ = (RawData.MagZ - MagZOff) / MagZSca;
+                double tempAccelX = RawData.RollAxle.Acceleration;
+                double tempAccelY = RawData.PitchAxle.Acceleration;
+                double tempAccelZ = RawData.YawAxle.Acceleration;
+                double tempGyroX = RawData.RollAxle.RotationRate - Calibration.GyroXAvg;
+                double tempGyroY = RawData.PitchAxle.RotationRate - Calibration.GyroYAvg;
+                double tempGyroZ = RawData.YawAxle.RotationRate - Calibration.GyroZAvg;
+                double tempMagX = (RawData.RollAxle.MagneticField - Calibration.MagXOff) / Calibration.MagXSca;
+                double tempMagY = (RawData.PitchAxle.MagneticField - Calibration.MagYOff) / Calibration.MagYSca;
+                double tempMagZ = (RawData.YawAxle.MagneticField - Calibration.MagZOff) / Calibration.MagZSca;
 
                 double MeaRoll = Math.PI + Math.Atan2(tempAccelX, tempAccelZ);
                 double MeaPitch = -Math.Atan2(tempAccelY, Math.Sqrt(tempAccelX * tempAccelX + tempAccelZ * tempAccelZ));
@@ -248,9 +232,9 @@ namespace AIR.Sensor
                 //correct pitch angle of mag
                 MagVector.Rotate(new Vector(1, 0, 0), tempPitch);
                 //forward calibrated
-                MagXCali = MagVector.DirectionX;
-                MagYCali = MagVector.DirectionY;
-                MagZCali = MagVector.DirectionZ;
+                double MagXTranslated = MagVector.DirectionX;
+                double MagYTranslated = MagVector.DirectionY;
+                double MagZTranslated = MagVector.DirectionZ;
                 //calculate heading
                 double MeaHeading = -Math.Atan2(MagVector.DirectionX, MagVector.DirectionY);
 
@@ -296,32 +280,6 @@ namespace AIR.Sensor
                 this.LastUpdateTime = DateTime.Now;
             }
         }
-        /// <summary>
-        /// Read a byte array to IMU package data
-        /// </summary>
-        /// <param name="XML"></param>
-        public static IMUPackage ReadPackage(byte[] bytes)
-        {
-            IMUPackage package = new IMUPackage();
-            try
-            {
-                if (bytes.Length < 27)
-                {
-                    package.AccelX = BitConverter.ToInt16(bytes, 0);
-                    package.AccelY = BitConverter.ToInt16(bytes, 3);
-                    package.AccelZ = -BitConverter.ToInt16(bytes, 6);
-                    package.GyroX = BitConverter.ToInt16(bytes, 9);
-                    package.GyroY = BitConverter.ToInt16(bytes, 12);
-                    package.GyroZ = BitConverter.ToInt16(bytes, 15);
-                    package.MagX = BitConverter.ToInt16(bytes, 18);
-                    package.MagY = BitConverter.ToInt16(bytes, 21);
-                    package.MagZ = BitConverter.ToInt16(bytes, 24);
-                }
-            }
-            catch (ArgumentOutOfRangeException)
-            { }
-            return package;
-        }
     }
 
     /// <summary>
@@ -329,9 +287,99 @@ namespace AIR.Sensor
     /// </summary>
     public class IMUPackage : SensorPackage
     {
+        /// <summary>
+        /// The axle that is related to Roll
+        /// Axis toward Heading
+        /// </summary>
+        public Axle RollAxle;
+
+        /// <summary>
+        /// The Axle that is related to Pitch
+        /// Axis toward Left Side
+        /// </summary>
+        public Axle PitchAxle;
+
+        /// <summary>
+        /// The Axle that is related to Yaw
+        /// Axis toward Sky
+        /// </summary>
+        public Axle YawAxle;
+
+        /// <summary>
+        /// Tempreture
+        /// </summary>
+        public double Temperature;
+
+        /*
         public long AccelX, AccelY, AccelZ;
         public long GyroX, GyroY, GyroZ;
-        public long MagX, MagY, MagZ;
-        public double Temperature;
+        public long MagX, MagY, MagZ;*/
+    }
+
+    /// <summary>
+    /// Calibration Profile of IMU
+    /// </summary>
+    public class CalibrationProfile
+    {
+        public int CalibrateCount = 0;
+        public double GyroXAvg = 0;
+        public double GyroXMax = Double.MinValue;
+        public double GyroXMin = Double.MaxValue;
+        public double GyroYAvg = 0;
+        public double GyroYMax = Double.MinValue;
+        public double GyroYMin = Double.MaxValue;
+        public double GyroZAvg = 0;
+        public double GyroZMax = Double.MinValue;
+        public double GyroZMin = Double.MaxValue;
+
+        public double MagXSca = 490;//520.5;
+        public double MagXOff = -78;//170.5;
+        public double MagXMax = Double.MinValue;
+        public double MagXMin = Double.MaxValue;
+        public double MagYSca = 500;//485;
+        public double MagYOff = -132;//-12;
+        public double MagYMax = Double.MinValue;
+        public double MagYMin = Double.MaxValue;
+        public double MagZSca = 460.5;//496;
+        public double MagZOff = -20.5;//129;
+        public double MagZMax = Double.MinValue;
+        public double MagZMin = Double.MaxValue;
+    }
+
+    /// <summary>
+    /// Axle of sensor
+    /// </summary>
+    public struct Axle
+    {
+        /// <summary>
+        /// Acceleration toward the direction of Axle
+        /// </summary>
+        public double Acceleration;
+
+        /// <summary>
+        /// Rate of rotation follow by the left-hand rule
+        /// </summary>
+        public double RotationRate;
+
+        /// <summary>
+        /// Magnitude of Magnetic Field towards the direction of the Axle
+        /// </summary>
+        public double MagneticField;
     }
 }
+
+
+/*
+                //Legacy code for Sparkfun Sensor stick
+                double tempAccelX = RawData.AccelX;
+                double tempAccelY = -RawData.AccelY;
+                double tempAccelZ = RawData.AccelZ;
+                double tempGyroX = RawData.GyroX - GyroXAvg;
+                double tempGyroY = RawData.GyroY - GyroYAvg;
+                double tempGyroZ = -RawData.GyroZ + GyroZAvg;
+                double tempMagX = (RawData.MagY - MagYOff) / MagYSca;
+                double tempMagY = (MagXOff - RawData.MagX) / MagXSca;
+                double tempMagZ = (RawData.MagZ - MagZOff) / MagZSca;
+
+
+*/

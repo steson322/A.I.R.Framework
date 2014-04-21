@@ -16,7 +16,7 @@ namespace AIR.Navigation
         public GPSLocationNode(double Lat, double Long, double Alt)
             : base(Lat, Long, Alt)
         { 
-        
+            
         }
 
     }
