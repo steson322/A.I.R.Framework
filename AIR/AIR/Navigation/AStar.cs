@@ -86,6 +86,9 @@ namespace AIR.Navigation
                 {
                     foreach (var expandableNode in Connections[currentPath.LastNode])
                     {
+                        //disregard if the node is already visited
+                        if (currentPath.Route.Contains(expandableNode))
+                            continue;
                         //calculate end distance if not exist
                         if (!NodeDistances.ContainsKey(expandableNode))
                         {
@@ -133,8 +136,8 @@ namespace AIR.Navigation
                 //avoid empty cannidate
                 if (Cannidate.Count == 0)
                     return null;
-                //check if first one is best
-                if (Cannidate[0].Reached)
+                //check if last one is best
+                if (Cannidate[Cannidate.Count - 1].Reached)
                     break;
                 //read last
                 Path currentPath = Cannidate[Cannidate.Count - 1];
@@ -149,6 +152,9 @@ namespace AIR.Navigation
                     {
                         //disregard if the node is already closed
                         if (ClosedNodes.Contains(expandableNode))
+                            continue;
+                        //disregard if the node is already visited
+                        if(currentPath.Route.Contains(expandableNode))
                             continue;
                         //calculate end distance if not exist
                         if (!NodeDistances.ContainsKey(expandableNode))
@@ -179,7 +185,7 @@ namespace AIR.Navigation
                 }
             }
             //return best cannidate
-            return Cannidate[0];
+            return Cannidate[Cannidate.Count - 1];
         }
     }
 }
