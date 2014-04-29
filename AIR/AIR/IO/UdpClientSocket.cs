@@ -174,16 +174,25 @@ namespace AIR.IO
                     //trigger new message event
                     if (PackageReceived != null)
                         PackageReceived(state.message.ToArray());
-                    //establish new message and read more
-                    UdpStateObject newState = new UdpStateObject();
-                    newState.client = client;
-                    newState.ep = ep;
-                    client.BeginReceive(new AsyncCallback(ReadCallback), newState);                    
                 }
+                //establish new message and read more
+                UdpStateObject newState = new UdpStateObject();
+                newState.client = client;
+                newState.ep = ep;
+                client.BeginReceive(new AsyncCallback(ReadCallback), newState);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e.ToString());
+                //re-initialize receive callback
+                UdpStateObject state = (UdpStateObject)(ar.AsyncState);
+                // Read data from the remote device.
+                UdpClient client = state.client;
+                IPEndPoint ep = state.ep;
+                //establish new message and read more
+                UdpStateObject newState = new UdpStateObject();
+                newState.client = client;
+                newState.ep = ep;
+                client.BeginReceive(new AsyncCallback(ReadCallback), newState);
             }
         }
 
