@@ -10,6 +10,9 @@ using System.Collections.Concurrent;
 
 namespace AIR.IO
 {
+    /// <summary>
+    /// Udp client socket
+    /// </summary>
     public class UdpClientSocket : Link
     {
         #region Properties
@@ -22,14 +25,6 @@ namespace AIR.IO
         /// </summary>
         public int Port { get; private set; }
         /// <summary>
-        /// IP address or Host Name of Tcp Client
-        /// </summary>
-        public IPAddress TargetIpAddress { get; private set; }
-        /// <summary>
-        /// IP address of Tcp Client
-        /// </summary>
-        public int TargetPort { get; private set; }
-        /// <summary>
         /// ManualResetEvent instances signal completion for terminate
         /// </summary>
         ManualResetEvent TerminateFlag = new ManualResetEvent(false);
@@ -38,6 +33,10 @@ namespace AIR.IO
         /// </summary>
         UdpClient Udp;
         /// <summary>
+        /// Endpoint of target
+        /// </summary>
+        IPEndPoint TargetEP;
+        /// <summary>
         /// If Udp is active
         /// </summary>
         bool Active = false;
@@ -45,38 +44,33 @@ namespace AIR.IO
 
         #region Contructor
 
-        /*
         /// <summary>
         /// Construct a Tcp Client Socket
         /// </summary>
-        /// <param name="Host">Host name of this udp client</param>
+        /// <param name="IpAddress">Ip address of this udp client</param>
         /// <param name="Port">Port Number</param>
-        public UdpClientSocket(string Host, int Port, string targetHost, int targetPort)
+        public UdpClientSocket(IPAddress IpAddress, int Port)
         {
             this.TerminateFlag.Reset();
-            // Find out the local endpoint for the socket.
-            IPHostEntry ipHostInfo = Dns.Resolve(Host);
-            this.IpAddress = ipHostInfo.AddressList[0];
+            this.IpAddress = IpAddress;
             this.Port = Port;
-            //find out target end point
-            IPHostEntry targetIpHostInfo = Dns.Resolve(targetHost);
-            this.TargetIpAddress = targetIpHostInfo.AddressList[0];
-            this.TargetPort = TargetPort;
-        }*/
+        }
 
         /// <summary>
         /// Construct a Tcp Client Socket
         /// </summary>
         /// <param name="IpAddress">Ip address of this udp client</param>
         /// <param name="Port">Port Number</param>
-        public UdpClientSocket(IPAddress IpAddress, int Port, IPAddress targetIpAddress, int targetPort)
+        /// <param name="TargetIpAddress"></param>
+        /// <param name="TargetPort"></param>
+        public UdpClientSocket(IPAddress IpAddress, int Port, IPAddress TargetIpAddress, int TargetPort)
         {
             this.TerminateFlag.Reset();
             this.IpAddress = IpAddress;
             this.Port = Port;
-            this.TargetIpAddress = targetIpAddress;
-            this.TargetPort = targetPort;
+            this.TargetEP = new IPEndPoint(TargetIpAddress, TargetPort);
         }
+
         #endregion Contructor
 
         #region Control Methods
@@ -121,9 +115,6 @@ namespace AIR.IO
                 UdpStateObject state = new UdpStateObject();
                 state.client = Udp;
                 state.ep = remoteEP;
-                //resolve target
-                IPEndPoint targetEP = new IPEndPoint(TargetIpAddress, TargetPort);
-                Udp.Connect(targetEP);
                 // Connect to the remote endpoint
                 Udp.BeginReceive(ReadCallback, state);
                 //wait until stop is called
@@ -146,7 +137,20 @@ namespace AIR.IO
         {
             try
             {
-                SendMessage(Udp, Message);
+                Udp.BeginSend(Message, Message.Length, TargetEP, null, null);
+            }
+            catch (Exception)
+            { }
+        }
+        /// <summary>
+        /// Add a message to server queue that will be send to server
+        /// </summary>
+        /// <param name="Message"></param>
+        public override void Send(byte[] Message, object Target)
+        {
+            try
+            {
+                Udp.BeginSend(Message, Message.Length, (IPEndPoint)Target, null, null);
             }
             catch (Exception)
             { }
@@ -196,35 +200,6 @@ namespace AIR.IO
             }
         }
 
-        private void SendMessage(UdpClient client, byte[] data)
-        {
-            // Begin sending the data to the remote device.
-            client.BeginSend(data, data.Length,
-                new AsyncCallback(SendCallback), client);
-        }
-
-        private void SendCallback(IAsyncResult ar)
-        {
-            /*
-            // Create the state object.
-            UdpStateObject state = new UdpStateObject();
-            state.client = Udp;
-            state.ep = remoteEP;
-            
-            try
-            {
-                // Retrieve the socket from the state object.
-                Socket client = (Socket)ar.AsyncState;
-                // Complete sending the data to the remote device.
-                int bytesSent = client.EndSend(ar);
-                Console.WriteLine("Sent {0} bytes to server.", bytesSent);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
-            */
-        }
         #endregion Private Functions
     }
 

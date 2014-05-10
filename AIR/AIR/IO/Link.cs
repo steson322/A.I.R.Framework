@@ -29,5 +29,11 @@ namespace AIR.IO
         /// </summary>
         /// <param name="bytes"></param>
         public virtual void Send(byte[] bytes) { }
+        /// <summary>
+        /// Send data with dynamic target
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="Target"></param>
+        public virtual void Send(byte[] bytes, object Target) { }
     }
 }
