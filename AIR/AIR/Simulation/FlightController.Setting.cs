@@ -220,7 +220,7 @@ namespace AIR.Simulation
                 Output.Chucks = new List<Chunk>();
                 HostEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5510);
                 FlightGearEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5511);
-                ControlInterval = 200;
+                ControlInterval = 100;
             }
 
             /// <summary>
