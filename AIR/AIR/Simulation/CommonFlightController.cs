@@ -118,20 +118,22 @@ namespace AIR.Simulation
         public CommonFlightController()
         {
             FastInterval = 2 * Settings.ControlInterval;
-            SlowInterval = 10 * FastInterval;
-            double fastFreq = 1000 / FastInterval;
-            double slowFreq = 1000 / SlowInterval;
-            PitchPID = new PID(fastFreq, 1, 0, 0, 0.5);
-            RollPID = new PID(fastFreq, 1.4, 0.2, 0.01, 0.5);
+            SlowInterval = 5 * FastInterval;
+            double fastFreq = 1000.0 / (double)FastInterval;
+            double slowFreq = 1000.0 / (double)SlowInterval;
+            PitchPID = new PID(fastFreq, 2.6, 1.4, 0.5, 0.5);
+            RollPID = new PID(fastFreq, 1.1, 1.2, 0.7, 0.5);
             AltitudePID = new PID(slowFreq, 1, 0, 0, Math.PI / 3.0);
             HeadingPID = new PID(slowFreq, 1, 0, 0, Math.PI / 3.0);
             Behavior = DoWork;
         }
 
+
+        public double ExpectedPitch = 0;
+        public double ExpectedRoll = 0;
+
         void DoWork()
         {
-            double ExpectedPitch = 0;
-            double ExpectedRoll = 0;
 
             //fast dynamic
             System.Timers.Timer FastDynamic = new System.Timers.Timer(FastInterval);
@@ -139,7 +141,7 @@ namespace AIR.Simulation
             {
                 double PitchRadian = Pitch * Math.PI / 180.0;
                 double RollRadian = Roll * Math.PI / 180.0;
-                Elevator = PitchPID.Feed(ExpectedPitch, -PitchRadian);
+                Elevator = -PitchPID.Feed(ExpectedPitch, PitchRadian);
                 Aileron = RollPID.Feed(ExpectedRoll, RollRadian);
             });
             
@@ -147,12 +149,12 @@ namespace AIR.Simulation
             System.Timers.Timer SlowDynamic = new System.Timers.Timer(SlowInterval);
             SlowDynamic.Elapsed += new System.Timers.ElapsedEventHandler((obj, args) =>
             {
-                ExpectedPitch = PitchPID.Feed(CruiseAltitude, Altitude);
-                ExpectedRoll = RollPID.Feed(CruiseHeading, Heading);
+                ExpectedPitch = AltitudePID.Feed(CruiseAltitude, Altitude);
+                //ExpectedRoll = HeadingPID.Feed(CruiseHeading, Heading);
             });
 
             FastDynamic.Start();
-            //SlowDynamic.Start();
+            SlowDynamic.Start();
         }
     }
 }
