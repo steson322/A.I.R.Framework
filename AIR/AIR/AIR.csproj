@@ -66,7 +66,7 @@
     <Compile Include="Sensor\Ultrasonic.cs" />
     <Compile Include="Simulation\CommonFlightController.cs" />
     <Compile Include="Simulation\FlightController.Setting.cs" />
-    <Compile Include="Simulation\FlightGearController.cs" />
+    <Compile Include="Simulation\FlightController.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
