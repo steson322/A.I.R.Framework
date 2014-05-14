@@ -122,15 +122,14 @@ namespace AIR.Simulation
         /// </summary>
         public CommonFlightController()
         {
-            FastInterval = 2 * Settings.ControlInterval;
+            FastInterval = Settings.ControlInterval;
             SlowInterval = 5 * FastInterval;
             double fastFreq = 1000.0 / (double)FastInterval;
             double slowFreq = 1000.0 / (double)SlowInterval;
             ElevatorPID = new PID(fastFreq, 2.6, 1.4, 0.5, 0.5);
-            RudderPID = new PID(fastFreq, 0, 0, 0, 0.5);
-            AileronPID = new PID(fastFreq, 1.1, 1.2, 0.7, 0.5);
-            AltitudePID = new PID(slowFreq, 1, 0, 0, Math.PI / 3.0);
-            HeadingPID = new PID(slowFreq, 1, 0, 0, Math.PI / 3.0);
+            AileronPID = new PID(fastFreq, 0.7, 0.8, 0.8, 0.5);
+            AltitudePID = new PID(slowFreq, 0.0005, 0.00001, 0.001, Math.PI / 4.0);
+            HeadingPID = new PID(slowFreq, 1, 0.1, 0, Math.PI / 6.0);
             Behavior = DoWork;
         }
 
@@ -151,16 +150,21 @@ namespace AIR.Simulation
                 PitchError = (PitchError + Math.PI) % (Math.PI * 2.0) - Math.PI;
                 double RollError = ExpectedRoll - RollRadian;
                 RollError = (RollError + Math.PI) % (Math.PI * 2.0) - Math.PI;
+                Aileron = AileronPID.Feed(RollError/* * Math.Cos(PitchRadian)*/);
                 Elevator = -ElevatorPID.Feed(PitchError * Math.Cos(RollRadian));
-                Aileron = AileronPID.Feed(RollError * Math.Cos(PitchRadian));
             });
             
             //slow dynamic
             System.Timers.Timer SlowDynamic = new System.Timers.Timer(SlowInterval);
             SlowDynamic.Elapsed += new System.Timers.ElapsedEventHandler((obj, args) =>
             {
-                //ExpectedPitch = AltitudePID.Feed(CruiseAltitude, Altitude);
-                //ExpectedRoll = HeadingPID.Feed(CruiseHeading, Heading);
+                ExpectedPitch = AltitudePID.Feed(CruiseAltitude, Altitude);
+
+                double HeadingRadian = Heading * Math.PI / 180.0;
+                HeadingRadian = (HeadingRadian + Math.PI) % (Math.PI * 2.0) - Math.PI;
+                double HeadingError = CruiseHeading - HeadingRadian;
+                HeadingError = (HeadingError + Math.PI) % (Math.PI * 2.0) - Math.PI;
+                ExpectedRoll = HeadingPID.Feed(HeadingError);
             });
 
             FastDynamic.Start();
