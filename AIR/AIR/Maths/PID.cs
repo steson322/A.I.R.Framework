@@ -30,24 +30,24 @@ namespace AIR.Maths
         /// <summary>
         /// Constructor of a PID controller
         /// </summary>
-        /// <param name="SamplingFrequency">sampling frequency of PID in Hz</param>
+        /// <param name="SamplingPeriod">sampling period of PID in ms</param>
         /// <param name="Limit">Limit of output memory, 0 for no limit</param>
-        public PID(double SamplingFrequency, double Limit = 0)
+        public PID(double SamplingPeriod, double Limit = 0)
         {
-            this.SamplingPeriod = 1.0 / SamplingFrequency;
+            this.SamplingPeriod = SamplingPeriod;
             this.Limit = Limit;
         }
         /// <summary>
         /// Constructor of a PID controller
         /// </summary>
-        /// <param name="SamplingFrequency">sampling frequency of PID in Hz</param>
+        /// <param name="SamplingPeriod">sampling period of PID in ms</param>
         /// <param name="Kp">Propotional Gain</param>
         /// <param name="Ki">Integrate Gain</param>
         /// <param name="Kd">Devritivational Gain</param>
         /// <param name="Limit">Limit of output memory, 0 for no limit</param>
-        public PID(double SamplingFrequency, double Kp, double Ki, double Kd, double Limit = 0)
+        public PID(double SamplingPeriod, double Kp, double Ki, double Kd, double Limit = 0)
         {
-            this.SamplingPeriod = 1.0 / SamplingFrequency;
+            this.SamplingPeriod = SamplingPeriod;
             K1 = Kp + Ki * SamplingPeriod + Kd / SamplingPeriod;
             K2 = Kp + 2 * Kd / SamplingPeriod;
             K3 = Kd / SamplingPeriod;

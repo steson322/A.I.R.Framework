@@ -124,12 +124,10 @@ namespace AIR.Simulation
         {
             FastInterval = Settings.ControlInterval;
             SlowInterval = 5 * FastInterval;
-            double fastFreq = 1000.0 / (double)FastInterval;
-            double slowFreq = 1000.0 / (double)SlowInterval;
-            ElevatorPID = new PID(fastFreq, 2.6, 1.4, 0.5, 0.5);
-            AileronPID = new PID(fastFreq, 0.7, 0.8, 0.8, 0.5);
-            AltitudePID = new PID(slowFreq, 0.0005, 0.00001, 0.001, Math.PI / 4.0);
-            HeadingPID = new PID(slowFreq, 1, 0.1, 0, Math.PI / 6.0);
+            ElevatorPID = new PID(FastInterval, 2.6, 1.4, 0.5, 0.5);
+            AileronPID = new PID(FastInterval, 0.7, 0.8, 0.8, 0.5);
+            AltitudePID = new PID(SlowInterval, 0.0005, 0.00001, 0.001, Math.PI / 4.0);
+            HeadingPID = new PID(SlowInterval, 1, 0.1, 0, Math.PI / 4.0);
             Behavior = DoWork;
         }
 
