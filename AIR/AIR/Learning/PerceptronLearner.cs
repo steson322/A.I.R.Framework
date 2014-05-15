@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Written By Steven Song 2014
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,14 +13,9 @@ namespace AIR.Learning
     public partial class PerceptronLearner
     {
         /// <summary>
-        /// In sample x of datapoint
+        /// In Samples
         /// </summary>
-        double[,] X;
-
-        /// <summary>
-        /// In sample y of datapoint
-        /// </summary> 
-        double[] Y;
+        List<DataPoint<double>> InSamples { get; set; }
 
         /// <summary>
         /// Weight of each degree of dimesion
@@ -29,12 +25,18 @@ namespace AIR.Learning
         /// <summary>
         /// Dimension of the perceptron
         /// </summary>
-        public int Dimension { get; set; }
+        public int Dimension { get; private set; }
+
+        /// <summary>
+        /// Hypothesis of leaning model
+        /// (x, y) = > x, y*y etc
+        /// </summary>
+        public Func<double[], double[]> Hypothesis = LinearHypothesis;
 
         /// <summary>
         /// Constructor of Perceptron learner
         /// </summary>
-        /// <param name="Dimesion">Dimension of learner</param>
+        /// <param name="Dimesion">Dimension of learner hypothesis</param>
         public PerceptronLearner(int Dimension)
         {
             //get dimension
@@ -44,7 +46,7 @@ namespace AIR.Learning
             Weights = new double[Dimension + 1];
 
             //reset W
-            for (int i = 0; i < Weights.Length; i++)
+            for (int i = 0; i < Dimension + 1; i++)
                 Weights[i] = 0;
         }
 
@@ -55,19 +57,8 @@ namespace AIR.Learning
         /// <param name="IterationLimit">Iteration limit of learner</param>
         public void Train(List<DataPoint<double>> InSamples, int IterationLimit)
         {
-            //initialize inSamples x
-            X = new double[InSamples.Count, Dimension + 1];
-            //copy insample x
-            for (int i = 0; i < InSamples.Count; i++)
-                for (int j = 0; j < Dimension + 1; j++)
-                    X[i, j] = InSamples[i].Coordinate[j];
-
-            //initialize inSamples y
-            Y = new double[InSamples.Count];
-            //copy insample y
-            for (int i = 0; i < InSamples.Count; i++)
-                Y[i] = InSamples[i].Value;
-
+            //copy in sample
+            this.InSamples = InSamples;
             //correct the data with linear regression
             LinearRegression();
             //apply PLA
@@ -75,10 +66,69 @@ namespace AIR.Learning
         }
 
         /// <summary>
+        /// A Hypothesis that
+        /// </summary>
+        /// <param name="Weights"></param>
+        /// <param name="Coordinate"></param>
+        /// <returns></returns>
+        public static double[] LinearHypothesis( double[] Coordinate)
+        {
+            return Coordinate;
+            /*
+            double calc = Weights[0];
+            for (int i = 1; i < Weights.Length; i++)
+                calc += Weights[i] * Coordinate[i - 1];
+            return calc;*/
+        }
+
+        /// <summary>
+        /// Estimate value based on learning at a certain location
+        /// </summary>
+        /// <param name="Coordinate"></param>
+        /// <returns></returns>
+        public double EstimateValue(double[] Coordinate)
+        {
+            double[] AdjustedCoordinates = Hypothesis(Coordinate);
+            return Compute(Weights, Coordinate);
+        }
+
+        /// <summary>
+        /// Compute current coordinate
+        /// </summary>
+        /// <param name="weights"></param>
+        /// <param name="Coordinate"></param>
+        /// <returns></returns>
+        double Compute(double[] weights, double[] Coordinate)
+        {
+            double[] AdjustedCoordinate = Hypothesis(Coordinate);
+            double calc = weights[0];
+            for (int i = 0; i < Dimension; i++)
+                calc += Weights[i + 1] * AdjustedCoordinate[i];
+            return calc;
+        }
+
+        /// <summary>
         /// Use linear regression to calculate a ideal initial gain
         /// </summary>
         void LinearRegression()
         {
+            //initialize inSamples x
+            double[,] X = new double[InSamples.Count, Dimension + 1];
+            //copy insample x
+            for (int i = 0; i < InSamples.Count; i++)
+            {
+                double[] AdjustedCoordinate = Hypothesis(InSamples[i].Coordinate);
+                X[i, 0] = 1;
+                for (int j = 0; j < Dimension; j++)
+                    X[i, j + 1] = AdjustedCoordinate[j];
+            }
+
+            //initialize inSamples y
+            double[] Y = new double[InSamples.Count];
+            //copy insample y
+            for (int i = 0; i < InSamples.Count; i++)
+                Y[i] = InSamples[i].Value;
+
             Matrix mX = new Matrix(X);
             Matrix mY = new Matrix(Y);
             mY = mY.Transpose;
@@ -94,29 +144,27 @@ namespace AIR.Learning
         /// <returns></returns>
         int PLA(int limit)
         {
-            int RightMax = testInSample();
+            double ErrorMin = MeasureError();
             double[] weight = (double[])Weights.Clone();
             int converge = 0;
             for (int itr = 0; itr < limit; itr++)
             {
-                int point = itr % X.GetLength(0);
-                //determine if the point is correct
-                double calc = 0;
-                for (int i = 0; i < Weights.Length; i++)
-                    calc += weight[i] * X[point, i];
-                //in case of a in match
-                if ((calc > 0 && Y[point] < 0) || (calc < 0 && Y[point] > 0))
+                int point = itr % InSamples.Count;
+                double calc = Compute(weight, InSamples[point].Coordinate);
+                if(calc * InSamples[point].Value <= 0)
                 {
                     //generate new weight
-                    for (int i = 0; i < Weights.Length; i++)
-                        weight[i] += Y[point] * X[point, i];
+                    weight[0] += InSamples[point].Value;
+                    double[] AdjustedCoordinate = Hypothesis(InSamples[point].Coordinate);
+                    for (int i = 1; i < Weights.Length; i++)
+                        weight[i] += InSamples[point].Value * AdjustedCoordinate[i - 1];
                     converge = itr + 1;
                     //pocket alg
-                    int Right = testInSample(weight);
-                    if (Right > RightMax)
+                    double Error = MeasureError(weight);
+                    if (Error < ErrorMin)
                     {
                         //update best apporach
-                        RightMax = Right;
+                        ErrorMin = Error;
                         //update the weight value of best
                         Weights = (double[])weight.Clone();
                     }
@@ -127,38 +175,13 @@ namespace AIR.Learning
 
         public int testOutSample(List<DataPoint<double>> OutSamples)
         {
-            //initialize outSamples x
-            double[,] outX = new double[OutSamples.Count, Dimension + 1];
-            //copy insample x
-            for (int i = 0; i < OutSamples.Count; i++)
-                for (int j = 0; j < Dimension + 1; j++)
-                    outX[i, j] = OutSamples[i].Coordinate[j];
-
-            //initialize outSamples y
-            double[] outY = new double[OutSamples.Count];
-            //copy insample y
-            for (int i = 0; i < OutSamples.Count; i++)
-                outY[i] = OutSamples[i].Value;
-
             int right = 0;
             //determine
-            for (int itr = 0; itr < outX.GetLength(0); itr++)
+            foreach(DataPoint<double> dp in OutSamples)
             {
-                double calc = 0;
-                for (int i = 0; i < Weights.Length; i++)
-                    calc += Weights[i] * outX[itr, i];
-                if ((calc > 0 && outY[itr] > 0) || (calc < 0 && outY[itr] < 0))
+                double calc = EstimateValue(dp.Coordinate);
+                if ((calc > 0 && dp.Value > 0) || (calc < 0 && dp.Value < 0))
                     right++;
-            }
-
-            int correctCount = 0;
-            foreach (DataPoint<double> dp in OutSamples)
-            {
-                double sum = 0;
-                for (int i = 0; i < Weights.Length; i++)
-                    sum += Weights[i] * dp.Coordinate[i];
-                if ((sum > 0 && dp.Value > 0) || (sum < 0 && dp.Value < 0))
-                    correctCount++;
             }
             return right;
         }
@@ -168,28 +191,25 @@ namespace AIR.Learning
         /// </summary>
         /// <param name="weight"></param>
         /// <returns></returns>
-        int testInSample(double[] weight)
+        double MeasureError(double[] weight)
         {//test the loaded weight
-            int right = 0;
+            double distance = 0;
             //determine
-            for (int itr = 0; itr < X.GetLength(0); itr++)
+            for (int itr = 0; itr < InSamples.Count; itr++)
             {
-                double calc = 0;
-                for (int i = 0; i < Weights.Length; i++)
-                    calc += weight[i] * X[itr, i];
-                if ((calc > 0 && Y[itr] > 0) || (calc < 0 && Y[itr] < 0))
-                    right++;
+                double calc = Compute(weight, InSamples[itr].Coordinate);
+                distance += Math.Abs(InSamples[itr].Value - calc);
             }
-            return right;
+            return distance;
         }
 
         /// <summary>
         /// Test in sample with current weight
         /// </summary>
         /// <returns></returns>
-        public int testInSample()
+        public double MeasureError()
         {//test the currect weight
-            return testInSample(Weights);
+            return MeasureError(Weights);
         }
     }
 }

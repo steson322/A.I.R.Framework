@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Written By Steven Song 2014
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,11 +19,11 @@ namespace AIR.Learning
         {
             get
             {
-                return Coordinate[1];
+                return Coordinate[0];
             }
             set
             {
-                Coordinate[1] = value;
+                Coordinate[0] = value;
             }
         }
 
@@ -33,11 +34,11 @@ namespace AIR.Learning
         {
             get
             {
-                return Coordinate[2];
+                return Coordinate[1];
             }
             set
             {
-                Coordinate[2] = value;
+                Coordinate[1] = value;
             }
         }
 
@@ -62,11 +63,11 @@ namespace AIR.Learning
         {
             get
             {
-                return Coordinate[1];
+                return Coordinate[0];
             }
             set
             {
-                Coordinate[1] = value;
+                Coordinate[0] = value;
             }
         }
 
@@ -77,11 +78,11 @@ namespace AIR.Learning
         {
             get
             {
-                return Coordinate[2];
+                return Coordinate[1];
             }
             set
             {
-                Coordinate[2] = value;
+                Coordinate[1] = value;
             }
         }
 
@@ -92,11 +93,11 @@ namespace AIR.Learning
         {
             get
             {
-                return Coordinate[3];
+                return Coordinate[2];
             }
             set
             {
-                Coordinate[3] = value;
+                Coordinate[2] = value;
             }
         }
 
@@ -136,7 +137,7 @@ namespace AIR.Learning
         public DataPoint(int Dimension)
         {
             this.Dimension = Dimension;
-            this.Coordinate = new double[Dimension + 1];
+            this.Coordinate = new double[Dimension];
             this.Coordinate[0] = 1;
         }
 
@@ -152,7 +153,7 @@ namespace AIR.Learning
                 return false;
             //copy coordinate
             for (int i = 0; i < Dimension; i++)
-                this.Coordinate[i + 1] = Coordinate[i];
+                this.Coordinate[i] = Coordinate[i];
             //copy value
             this.Value = Value;
             return true;

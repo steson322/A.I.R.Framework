@@ -1,4 +1,5 @@
-﻿using System;
+﻿//Written By Steven Song 2014
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,7 +24,7 @@ namespace AIR.Maths
 
         #region Constructor
 
-        public Matrix(int Width, int Height)
+        public Matrix(int Height, int Width)
         {
             this.Height = Height;
             this.Width = Width;
