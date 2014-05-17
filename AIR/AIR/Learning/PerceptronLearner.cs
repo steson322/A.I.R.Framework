@@ -8,7 +8,7 @@ using AIR.Maths;
 namespace AIR.Learning
 {
     /// <summary>
-    /// a Perceptron Learner
+    /// a Perceptron Learner for linear classification
     /// </summary>
     public partial class PerceptronLearner
     {
@@ -36,7 +36,7 @@ namespace AIR.Learning
         /// <summary>
         /// Constructor of Perceptron learner
         /// </summary>
-        /// <param name="Dimesion">Dimension of learner hypothesis</param>
+        /// <param name="Dimension">Dimension of learner hypothesis</param>
         public PerceptronLearner(int Dimension)
         {
             //get dimension
@@ -52,10 +52,11 @@ namespace AIR.Learning
 
         /// <summary>
         /// Train the learner with in samples
+        /// Iteration Limit = 0 will result a pure linear regression
         /// </summary>
         /// <param name="InSamples">Input training samples</param>
         /// <param name="IterationLimit">Iteration limit of learner</param>
-        public void Train(List<DataPoint<double>> InSamples, int IterationLimit)
+        public void Train(List<DataPoint<double>> InSamples, int IterationLimit = 0)
         {
             //copy in sample
             this.InSamples = InSamples;
@@ -135,6 +136,17 @@ namespace AIR.Learning
             Matrix mW = mX.PseudoInverse * mY;
             for (int i = 0; i < Weights.Length; i++)
                 Weights[i] = mW.Get(i, 0);
+            //apply linear regression scale
+            double estTotal = 0;
+            double valueTotal = 0;
+            foreach (var inSample in InSamples)
+            {
+                valueTotal += inSample.Value;
+                estTotal += EstimateValue(inSample.Coordinate);
+            }
+            double scale = valueTotal / estTotal;
+            for (int i = 0; i < Weights.Length; i++)
+                Weights[i] *= scale;
         }
 
         /// <summary>
@@ -142,11 +154,10 @@ namespace AIR.Learning
         /// </summary>
         /// <param name="limit">limit of iteration</param>
         /// <returns></returns>
-        int PLA(int limit)
+        void PLA(int limit)
         {
             double ErrorMin = MeasureError();
             double[] weight = (double[])Weights.Clone();
-            int converge = 0;
             for (int itr = 0; itr < limit; itr++)
             {
                 int point = itr % InSamples.Count;
@@ -158,7 +169,6 @@ namespace AIR.Learning
                     double[] AdjustedCoordinate = Hypothesis(InSamples[point].Coordinate);
                     for (int i = 1; i < Weights.Length; i++)
                         weight[i] += InSamples[point].Value * AdjustedCoordinate[i - 1];
-                    converge = itr + 1;
                     //pocket alg
                     double Error = MeasureError(weight);
                     if (Error < ErrorMin)
@@ -170,7 +180,6 @@ namespace AIR.Learning
                     }
                 }
             }
-            return converge;
         }
 
         public int testOutSample(List<DataPoint<double>> OutSamples)
