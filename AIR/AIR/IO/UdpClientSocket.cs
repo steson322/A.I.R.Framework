@@ -196,7 +196,18 @@ namespace AIR.IO
                 UdpStateObject newState = new UdpStateObject();
                 newState.client = client;
                 newState.ep = ep;
-                client.BeginReceive(new AsyncCallback(ReadCallback), newState);
+                //retry until reconnect
+                while (true)
+                {
+                    try
+                    {
+                        client.BeginReceive(new AsyncCallback(ReadCallback), newState);
+                        Thread.Sleep(20);
+                        break;
+                    }
+                    catch (Exception)
+                    { }
+                }
             }
         }
 
